@@ -1429,6 +1429,7 @@ static int cpuset_allow_attach(struct cgroup *cgrp,
 		tcred = __task_cred(task);
 
 		if ((current != task) && !capable(CAP_SYS_ADMIN) &&
+		    !capable(CAP_SYS_NICE) &&
 		    cred->euid != tcred->uid && cred->euid != tcred->suid)
 			return -EACCES;
 	}

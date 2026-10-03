@@ -920,12 +920,19 @@ static int blkcg_can_attach(struct cgroup *cgrp, struct cgroup_taskset *tset)
 	return ret;
 }
 
+/* CAP_SYS_NICE permits scheduling another user's CPU and I/O work. */
+static int blkcg_allow_attach(struct cgroup *cgrp, struct cgroup_taskset *tset)
+{
+	return capable(CAP_SYS_NICE) || capable(CAP_SYS_ADMIN) ? 0 : -EACCES;
+}
+
 struct cgroup_subsys blkio_subsys = {
 	.name = "blkio",
 	.css_alloc = blkcg_css_alloc,
 	.css_offline = blkcg_css_offline,
 	.css_free = blkcg_css_free,
 	.can_attach = blkcg_can_attach,
+	.allow_attach = blkcg_allow_attach,
 	.subsys_id = blkio_subsys_id,
 	.base_cftypes = blkcg_files,
 	.module = THIS_MODULE,
