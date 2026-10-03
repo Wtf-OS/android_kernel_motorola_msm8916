@@ -1968,7 +1968,8 @@ static void get_scan_count(struct lruvec *lruvec, struct scan_control *sc,
 	 * latencies, so it's better to scan a minimum amount there as
 	 * well.
 	 */
-	if (current_is_kswapd() && !zone_reclaimable(zone))
+	if (current_is_kswapd() &&
+	    (!zone_reclaimable(zone) || sc->priority == 1))
 		force_scan = true;
 	if (!global_reclaim(sc))
 		force_scan = true;
@@ -2013,8 +2014,12 @@ static void get_scan_count(struct lruvec *lruvec, struct scan_control *sc,
 	 * thrashing - remaining file pages alone.
 	 */
 	if (global_reclaim(sc)) {
+		unsigned long zonefile =
+			zone_page_state(zone, NR_ACTIVE_FILE) +
+			zone_page_state(zone, NR_INACTIVE_FILE);
+
 		free = zone_page_state(zone, NR_FREE_PAGES);
-		if (unlikely(file + free <= high_wmark_pages(zone))) {
+		if (unlikely(zonefile + free <= high_wmark_pages(zone))) {
 			scan_balance = SCAN_ANON;
 			goto out;
 		}
@@ -2097,7 +2102,10 @@ out:
 			 * Scan types proportional to swappiness and
 			 * their relative recent reclaim efficiency.
 			 */
-			scan = div64_u64(scan * fraction[file], denominator);
+			/* Keep a nonzero scan at the final priority for small LRUs. */
+			scan = div64_u64(scan * fraction[file] +
+					(force_scan ? denominator - 1 : 0),
+					denominator);
 			break;
 		case SCAN_FILE:
 		case SCAN_ANON:
