@@ -3923,8 +3923,8 @@ csrIsPMFCapabilitiesInRSNMatch( tHalHandle hHal,
                 (apProfileMFPCapable == 1))
        {
            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-           "we don't need PMF connection eventhough both parties are capable");
-           return VOS_FALSE;
+           "we don't need PMF connection eventhough both parties are capable (allowing non-PMF connection)");
+           return VOS_TRUE;
        }
     }
     return VOS_TRUE;
