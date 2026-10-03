@@ -1428,8 +1428,8 @@ static int add_free_nid(struct f2fs_sb_info *sbi, nid_t nid, bool build)
 	if (!available_free_memory(sbi, FREE_NIDS))
 		return -1;
 
-	/* 0 nid should not be used */
-	if (unlikely(nid == 0))
+	/* 0 nid and reserved nids (< 14) should not be used */
+	if (unlikely(nid < 14))
 		return 0;
 
 	if (build) {
@@ -1500,6 +1500,9 @@ static void scan_nat_page(struct f2fs_sb_info *sbi,
 
 		if (unlikely(start_nid >= nm_i->max_nid))
 			break;
+
+		if (unlikely(start_nid < 14))
+			continue;
 
 		blk_addr = le32_to_cpu(nat_blk->entries[i].block_addr);
 		f2fs_bug_on(sbi, blk_addr == NEW_ADDR);
@@ -1619,7 +1622,7 @@ void alloc_nid_failed(struct f2fs_sb_info *sbi, nid_t nid)
 	struct free_nid *i;
 	bool need_free = false;
 
-	if (!nid)
+	if (!nid || nid < 14)
 		return;
 
 	spin_lock(&nm_i->free_nid_list_lock);

@@ -102,13 +102,13 @@ static struct inode *f2fs_new_inode(struct inode *dir, umode_t mode)
 	struct f2fs_sb_info *sbi = F2FS_I_SB(dir);
 	nid_t ino;
 	struct inode *inode;
-	bool nid_free = false;
 	int err;
 
 	inode = new_inode(dir->i_sb);
 	if (!inode)
 		return ERR_PTR(-ENOMEM);
 
+retry:
 	f2fs_lock_op(sbi);
 	if (!alloc_nid(sbi, &ino)) {
 		f2fs_unlock_op(sbi);
@@ -126,9 +126,8 @@ static struct inode *f2fs_new_inode(struct inode *dir, umode_t mode)
 
 	err = insert_inode_locked(inode);
 	if (err) {
-		err = -EINVAL;
-		nid_free = true;
-		goto out;
+		alloc_nid_done(sbi, ino);
+		goto retry;
 	}
 
 	/* If the directory encrypted, then we should encrypt the inode. */
@@ -147,15 +146,10 @@ static struct inode *f2fs_new_inode(struct inode *dir, umode_t mode)
 	mark_inode_dirty(inode);
 	return inode;
 
-out:
-	clear_nlink(inode);
-	unlock_new_inode(inode);
 fail:
 	trace_f2fs_new_inode(inode, err);
 	make_bad_inode(inode);
 	iput(inode);
-	if (nid_free)
-		alloc_nid_failed(sbi, ino);
 	return ERR_PTR(err);
 }
 
